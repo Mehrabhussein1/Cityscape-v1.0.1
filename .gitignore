@@ -1,0 +1,19 @@
+# Compiled programs
+*.exe
+*.o
+*.obj
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+
+# VS Code workspace settings
+.vscode/
+
+# Personal environment files
+.env
+
+# Build output
+build/
+dist/
