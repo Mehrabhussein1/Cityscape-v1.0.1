@@ -125,4 +125,120 @@ void showBuildings(void) {
     }
 }
 
+int countBuilding(const City *city, BuildingType type){
+    int r, c, count =0;
+    const Building *b = getBuilding(type);
+    if(!b) return 0;
+    for(r =0; r<MAP_SIZE;r++)
+        for(c=0;c<MAP_SIZE;c++)
+            if(city->map[r][c] == b-> symbol)
+                count++;
+    return count;
+}
 
+
+ void applyBuildingEffects(City *city, BuildingType type, int direction){
+    const Building *b = getBuilding(type);
+    if(!b) return;
+
+    city-> population_limit += direction * b-> population_capacity_effect;
+
+    city-> happiness = clampstat(city->happiness + direction* b->happiness_effect);
+
+    city->health = clampstat(city-> health + direction* b->health_effect);
+
+    city-> education = clampstat(city-> education + direction* b->education_effect);
+
+    if(city->population_limit < city->population){
+        city-> population_limit = city->population;
+    }
+
+ }
+
+static BuildingType symbolToType(char symbol) {
+    int i;
+    for (i = 0; i < building_count; i++)
+        if (buildings[i].symbol == symbol) return buildings[i].type;
+    return (BuildingType)building_count;
+}
+
+void addBuilding(City *city) {
+    int choice, row, col;
+    showMap(city);
+    showBuildings();
+    printf("Choose building (1-%d): ", building_count);
+    if (scanf("%d", &choice) != 1) { clearInput(); printf("Invalid choice.\n"); return; }
+    clearInput();
+    if (choice < 1 || choice > building_count) { printf("Invalid building.\n"); return; }
+
+    const Building *b = &buildings[choice - 1];
+    if (city->money < b->cost) { printf("Not enough money. Need $%d.\n", b->cost); return; }
+
+    printf("Enter row (0-%d): ", MAP_SIZE - 1);
+
+    if (scanf("%d", &row) != 1) { clearInput(); printf("Invalid row.\n"); return; }
+
+    printf("Enter column (0-%d): ", MAP_SIZE - 1);
+
+    if (scanf("%d", &col) != 1) { clearInput(); printf("Invalid column.\n"); return; }
+
+    clearInput();
+    if (row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) { printf("Invalid location.\n"); return; }
+
+    if (city->map[row][col] != '.') { printf("That location is occupied.\n"); return; }
+
+    city->map[row][col] = b->symbol;
+    city->money -= b->cost;
+    applyBuildingEffects(city, b->type, 1);
+    printf("%s built successfully for $%d.\n", b->name, b->cost);
+    showMap(city);
+}
+
+
+void deleteBuilding(City *city) {
+    int row, col;
+    showMap(city);
+    printf("Enter row to delete: ");
+    if (scanf("%d", &row) != 1) { clearInput(); printf("Invalid row.\n"); return; }
+    printf("Enter column to delete: ");
+    if (scanf("%d", &col) != 1) { clearInput(); printf("Invalid column.\n"); return; }
+    clearInput();
+    if (row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) { printf("Invalid location.\n"); return; }
+    if (city->map[row][col] == '.') { printf("That location is empty.\n"); return; }
+
+    BuildingType type = symbolToType(city->map[row][col]);
+    if ((int)type == building_count) { printf("Unknown structure.\n"); return; }
+    const Building *b = getBuilding(type);
+    city->map[row][col] = '.';
+    city->money += b->cost / 2;
+    applyBuildingEffects(city, type, -1);
+    printf("%s removed. Half of its cost ($%d) was refunded.\n", b->name, b->cost / 2);
+    showMap(city);
+}
+
+
+
+void calculateCitizenRatings(City *city) {
+    int i;
+    int base = (city->happiness + city->health + city->education) / 3;
+    if (city->food <= 0) base -= 20;
+    if (city->electricity <= 0) base -= 20;
+    base = clampStat(base);
+    if (city->citizen_count > MAX_CITIZENS) city->citizen_count = MAX_CITIZENS;
+    for (i = 0; i < city->citizen_count; i++) {
+        if (!city->citizens[i].active) city->citizens[i].active = 1;
+        city->citizens[i].satisfaction = clampStat(base + (rand() % 10)-5);
+        city->citizens[i].rating = city->citizens[i].satisfaction;
+    }
+}
+
+void calculateMayorRating(City *city) {
+    int i, total = 0;
+    if (city -> citizen_count <= 0){
+        city -> mayor_rating = 0; 
+        return; 
+    }
+    for (i = 0; i < city->citizen_count; i++) 
+        total += city->citizens[i].rating;
+    city->mayor_rating = total / city->citizen_count;
+}
