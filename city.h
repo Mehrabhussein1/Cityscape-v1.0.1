@@ -37,10 +37,10 @@ typedef enum {  //all structures in enum.
     SCHOOL,
     PARK,
     BUILDING_TYPE_COUNT //its index is 6 (total structure koyta ta indicate kore)
-} BuildingType; 
+} BuildingType; //enumerated  type er naam
 
 typedef struct { 
-    BuildingType type;
+    BuildingType type; //game er vitor bivinno function er vitor structure niye kaj korar shomoy jeno eta kon structure ta identify korte subidha hoy 
     char name[40];
     char symbol;
     int cost;
