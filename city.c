@@ -508,7 +508,48 @@ for(;;){
             }
             clearInput();
             if (choice != 1) continue;
-            
+        printf("Structure name (max 39 characters): ");
+        if(!fget(name,sizeof(name),stdin)) return;
+        
+        name[strcspn(name,"\r\n")] = '\0';
+        if(name[0] == '\0' || strchr(name,'|')){
+            printf("Invalid name.\n"); continue; 
+        }
+
+        printf("One-character map symbol: ");
+            if (scanf(" %c", &symbol) != 1) { clearInput(); printf("Invalid symbol.\n"); continue; }
+            clearInput();
+            if (symbol == '.' || symbol == '|' || symbol == '\n') { printf("That symbol is reserved.\n"); continue; }
+            for (i = 0; i < building_count; i++) {
+                if (buildings[i].symbol == symbol) {
+                    printf("That symbol is already used.\n");
+                    // goto skip_add;
+                }
+            }
+    #define READ_ADMIN_VALUE(prompt, target) do { \
+    printf(prompt); \
+    if (scanf("%d", &(target)) != 1) { clearInput(); \
+    printf("Invalid number. Structure not added.\n"); \
+    goto skip_add; } \
+    clearInput(); \
+} while (0)
+        READ_ADMIN_VALUE("Cost to build ($): ", cost);
+        READ_ADMIN_VALUE("Daily money change (+/-): ", dm);
+        READ_ADMIN_VALUE("Daily food change (+/-): ", df);
+        READ_ADMIN_VALUE("Daily electricity change (+/-): ", de);
+        READ_ADMIN_VALUE("Population capacity change (+/-): ", cap);
+        READ_ADMIN_VALUE("Happiness change when built (+/-): ", happy);
+        READ_ADMIN_VALUE("Health change when built (+/-): ", health);
+        READ_ADMIN_VALUE("Education change when built (+/-): ", education);
+#undef READ_ADMIN_VALUE 
+
+
+
+
+
+
+
+
 
 
         }
