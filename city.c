@@ -353,11 +353,164 @@ void showCitizens(const City *city) {
 
 void showBitwiseStatus(const City *city) {
     int status = 0;
-    if (city->food > 0) status = status | 1;
+    if (city->food > 0) status = status | 1; //food ok = 01 elec ok = 10 both ok = 11
     if (city->electricity > 0) status = status | 2;
     printf("\nCity status flags: %d\n", status);
     printf("Food available: %s\n", (status & 1) ? "YES" : "NO");
     printf("Electricity available: %s\n", (status & 2) ? "YES" : "NO");
 }
 
+void showDynamicBuildings(void) {
+    int i;
+    int *costs = (int *)malloc(building_count * sizeof(int));
+    if (!costs) { printf("Dynamic allocation failed.\n"); return; }
+    for (i = 0; i < building_count; i++) *(costs + i) = buildings[i].cost;
+    printf("\nDynamic building cost array (pointer arithmetic):\n");
+    for (i = 0; i < building_count; i++) printf("%s -> $%d\n", buildings[i].name, *(costs + i));
+    free(costs);
+}
 
+
+void loadCustomBuildings(void){
+    FILE *fp = fopen(BUILDING_DATA_FILE,"r");
+    char line[256],name[40];
+    int cost,dm,df,de,cap,happy,health,education;
+    char symbol;
+    if(!fp) return;
+while (building_count < MAX_BUILDINGS && fgets(line, sizeof(line), fp)) {
+        if (sscanf(line, "%39[^|]|%c|%d|%d|%d|%d|%d|%d|%d|%d",
+                   name, &symbol, &cost, &dm, &df, &de, &cap, &happy,
+                   &health, &education) == 10) {
+            int i, used = 0;
+            for (i = 0; i < building_count; i++)
+                if (buildings[i].symbol == symbol) used = 1;
+            if (used || symbol == '.' || symbol == '\n') continue;
+            buildings[building_count].type = (BuildingType)building_count;
+            strncpy(buildings[building_count].name, name, sizeof(buildings[building_count].name)-1);
+            buildings[building_count].name[sizeof(buildings[building_count].name)-1] = '\0';
+            buildings[building_count].symbol = symbol;
+            buildings[building_count].cost = cost;
+            buildings[building_count].daily_money_effect = dm;
+            buildings[building_count].daily_food_effect = df;
+            buildings[building_count].daily_electricity_effect = de;
+            buildings[building_count].population_capacity_effect = cap;
+            buildings[building_count].happiness_effect = happy;
+            buildings[building_count].health_effect = health;
+            buildings[building_count].education_effect = education;
+            building_count++;
+        }
+    }
+    fclose(fp);
+    
+}
+
+void loadAdminPassword(void) {
+    FILE *fp = fopen(ADMIN_PASSWORD_FILE, "r");
+    char buf[ADMIN_PASSWORD_MAX];
+
+    if (fp == NULL) return;  /* no file yet -> keep default "1234" */
+    if (fgets(buf, sizeof(buf), fp)) {
+        buf[strcspn(buf, "\r\n")] = '\0';
+        if (buf[0] != '\0' && !strchr(buf, '|')) { //checks if password is empty or pass has '|' , if not , OK
+            strncpy(admin_password, buf, ADMIN_PASSWORD_MAX - 1);
+            admin_password[ADMIN_PASSWORD_MAX - 1] = '\0';
+        }
+    }
+    fclose(fp);
+}
+
+
+void adminManageBuilding(void){
+    int i, choice, cost, dm,df,de,cap,happy,health,education;
+
+    char password[64], name[40] , symbol;
+    FILE* fp;
+
+printf("\n==== ADMIN / STRUCTURE DATA ====\n");
+printf("Enter admin password (0 to cancel): ");
+if(!fgets(password,sizeof(password),stdin)) return;
+password[strcspn(password,"\r\n")] = '\0';
+if(strcmp(password,"0")==0) return;
+if(strcmp(password,admin_password)!=0){
+    printf("Incorrect password. Access denied.\n");
+    return;
+}
+
+for(;;){
+    printf("\n==== ADMIN PANEL ====\n");
+    printf("1. Add structures\n");
+        printf("2. Change admin password\n");
+        printf("3. Close admin panel\n");
+        printf("Choice: ");
+        if (scanf("%d", &choice) != 1) { clearInput(); printf("Invalid choice.\n"); continue; }
+        clearInput();
+
+     if (choice == 3) {
+            printf("Admin panel closed.\n");
+            return;   }
+    else if(choice ==2){
+        char current[64],newPass[64],confirm[64];
+
+        printf("Enter current password: ");
+        if(!fgets(current,sizeof(current),stdin)) return;
+        current[strcspn(current, "\r\n")] = '\0';
+        if(strcmp(current,admin_password)!=0) {
+            printf("Incorrect Current Password. Password Unchanged!\n");
+            continue;
+        }
+
+       printf("Enter new password: ");
+            if (!fgets(newPass, sizeof(newPass), stdin)) return;
+            newPass[strcspn(newPass, "\r\n")] = '\0';
+            if (newPass[0] == '\0' || strchr(newPass, '|')) {
+                printf("Invalid password (empty or contains '|'). Password unchanged.\n");
+                continue;
+            }
+
+            printf("Confirm new password: ");
+            if (!fgets(confirm, sizeof(confirm), stdin)) return;
+            confirm[strcspn(confirm, "\r\n")] = '\0';
+            if (strcmp(newPass, confirm) != 0) {
+                printf("Passwords do not match. Password unchanged.\n");
+                continue;
+            }
+            strncpy(admin_password, newPass, ADMIN_PASSWORD_MAX - 1);
+            admin_password[ADMIN_PASSWORD_MAX - 1] = '\0';
+
+            fp = fopen(ADMIN_PASSWORD_FILE,"w");
+            if(!fp){
+                printf("Warning: password changed for this session but could not be saved to %s.\n",ADMIN_PASSWORD_FILE);
+            } else{
+                fprintf(fp,"%s\n",admin_password);
+                fclose(fp);
+                printf("Admin password changed and saved. \n");
+            }
+            continue;
+    }   else if(choice ==1){
+            for (i = 0; i < building_count; i++) {
+                const Building *b = &buildings[i];
+                printf("[%d] %s | Symbol: %c | Cost: $%d\n", i + 1, b->name, b->symbol, b->cost);
+                printf("    Daily money %+d | food %+d | electricity %+d | capacity %+d\n",
+                       b->daily_money_effect, b->daily_food_effect, b->daily_electricity_effect,
+                       b->population_capacity_effect);
+                printf("    Happiness %+d | Health %+d | Education %+d\n",
+                       b->happiness_effect, b->health_effect, b->education_effect);
+            }
+            if(building_count >= MAX_BUILDINGS){
+                printf("Structure limit reached! Can't add anymore structures\n"); continue;
+            }
+
+            printf("\nAdd a new structure? (1 = yes, 0 = no): ");
+            if (scanf("%d", &choice) != 1) { 
+                clearInput(); 
+                printf("Invalid choice.\n");
+                continue; 
+            }
+            clearInput();
+            if (choice != 1) continue;
+            
+
+
+        }
+    }
+}
