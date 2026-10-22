@@ -242,3 +242,122 @@ void calculateMayorRating(City *city) {
         total += city->citizens[i].rating;
     city->mayor_rating = total / city->citizen_count;
 }
+
+
+void randomEvent(City *city) {
+    EventData data;
+    int roll = rand() % 100;
+    int event;
+    if (roll >= 25) return;
+    event = rand() % 3;
+    printf("\n*** RANDOM EVENT ***\n");
+    switch (event) {
+        case 0:
+            data.money = 1000 + rand() % 2001;
+            addMoney(&city->money, data.money);
+            printf("Economic bonus! The city received $%d.\n", data.money);
+            break;
+        case 1:
+            data.food = 40 + rand() % 61;
+            city->food += data.food;
+            printf("Good harvest! The city received %d food.\n", data.food);
+            break;
+        case 2:
+            data.population = 1 + rand() % 4;
+            if (city->population + data.population <= city->population_limit) {
+                city->population += data.population;
+                city->citizen_count = city->population;
+                printf("New residents arrived: +%d population.\n", data.population);
+            } else {
+                printf("New residents wanted to arrive, but there is not enough housing.\n");
+            }
+            break;
+    }
+}
+
+void advanceDay(City *city){
+    int farms = countBuilding(city,FARM);
+    int plants = countBuilding(city,POWER_PLANT);
+
+    int income, foodProduction, foodConsumption , electricityProduction , electricityConsumption;
+
+    city->day++;
+    income = city-> population*20;
+    foodProduction = farms * 30;
+    electricityProduction = plants*30;
+    foodConsumption = city->population /2;
+    electricityConsumption = city-> population / 2;
+    
+    //custom buildings
+    {
+        int i, r, c, count;
+        for (i = BUILDING_TYPE_COUNT; i < building_count; i++) {
+            count = 0;
+            for (r = 0; r < MAP_SIZE; r++)
+                for (c = 0; c < MAP_SIZE; c++)
+                    if (city->map[r][c] == buildings[i].symbol) count++;
+            income += count * buildings[i].daily_money_effect;
+            foodProduction += count * buildings[i].daily_food_effect;
+            electricityProduction += count * buildings[i].daily_electricity_effect;
+        }
+    }
+
+    city->money += income;
+    city-> food += foodProduction - foodConsumption;
+    city-> electricity += electricityProduction - electricityConsumption;
+
+    
+    if (city->food < 0) {
+        city->food = 0;
+        city->happiness = clampStat(city->happiness - 8);
+        city->health = clampStat(city->health - 3);
+    }
+    if (city->electricity < 0) {
+        city->electricity = 0;
+        city->happiness = clampStat(city->happiness - 8);
+    }
+    
+    if (city->population < city->population_limit && city->happiness >= 60) {
+        city->population += rand()%10;
+        if (city->population > city->population_limit) city->population = city->population_limit;
+    }
+    
+    city->citizen_count = city->population;
+    if (city->citizen_count > MAX_CITIZENS) city->citizen_count = MAX_CITIZENS;
+
+    calculateCitizenRatings(city);
+    calculateMayorRating(city);
+    randomEvent(city);
+    calculateCitizenRatings(city);
+    calculateMayorRating(city);
+
+    printf("\nDay %d completed.\n", city->day);
+    printf("Income: +$%d | Food production: +%d | Electricity production: +%d\n", income, foodProduction, electricityProduction);
+    printf("Food consumed: %d | Electricity consumed: %d\n", foodConsumption, electricityConsumption);
+}
+
+void addMoney(int *money, int amount) {
+    if (money) *money += amount;
+}
+
+void showCitizens(const City *city) {
+    int i, limit = city->citizen_count < 20 ? city->citizen_count : 20;
+    printf("\n----------- CITIZENS & MAYOR RATING -----------\n");
+    printf("Showing %d of %d citizens\n", limit, city->citizen_count);
+    for (i = 0; i < limit; i++)
+        printf("%-14s Satisfaction: %3d  Rating: %3d\n", city->citizens[i].name, city->citizens[i].satisfaction, city->citizens[i].rating);
+    if (city->citizen_count > limit) printf("...and %d more citizens.\n", city->citizen_count - limit);
+    printf("Overall Mayor Rating: %d/100\n", city->mayor_rating);
+}
+
+
+void showBitwiseStatus(const City *city) {
+    int status = 0;
+    if (city->food > 0) status = status | 1;
+    if (city->electricity > 0) status = status | 2;
+    printf("\nCity status flags: %d\n", status);
+    printf("Food available: %s\n", (status & 1) ? "YES" : "NO");
+    printf("Electricity available: %s\n", (status & 2) ? "YES" : "NO");
+}
+
+
