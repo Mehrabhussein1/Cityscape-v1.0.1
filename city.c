@@ -29,7 +29,7 @@ void clearInput(void){
 
 static int clampstat(int value){
     if(value < 0) return 0;
-    if(value > 100) return 0;
+    if(value > 100) return 100;
     return value;
 }
 
@@ -77,7 +77,7 @@ void showGuide(void){
     printf("\n==================================================\n");
     printf("                 CITYSCAPE v1.0.1\n");
     printf("==================================================\n");
-    printf("Hi! You Sir, are a Mayor now! Build the city of your Dreams.\n Manage the city and build a Megapolis from scratch.\nManage Money, Food, Electricity, Citizen Health and their Education too!\nAdvance days to produce/consume resources and trigger (!random!) events.\n \nAND DON'T FORGET TO SAVE YOUR GAME BEFORE YOU TAKE A BREAK\n \nHAPPY GAMING CITYSCAPE!\n\n");
+    printf("Hi! You Sir, are a Mayor now! Build the city of your Dreams.\nManage the city and build a Megapolis from scratch.\nManage Money, Food, Electricity, Citizen Health and their Education too!\nAdvance days to produce/consume resources and trigger (!random!) events.\n \nAND DON'T FORGET TO SAVE YOUR GAME BEFORE YOU TAKE A BREAK\n \nHAPPY GAMING CITYSCAPE!\n\n");
 }
 
 void showStatus(const City *city) {
@@ -223,11 +223,11 @@ void calculateCitizenRatings(City *city) {
     int base = (city->happiness + city->health + city->education) / 3;
     if (city->food <= 0) base -= 20;
     if (city->electricity <= 0) base -= 20;
-    base = clampStat(base);
+    base = clampstat(base);
     if (city->citizen_count > MAX_CITIZENS) city->citizen_count = MAX_CITIZENS;
     for (i = 0; i < city->citizen_count; i++) {
         if (!city->citizens[i].active) city->citizens[i].active = 1;
-        city->citizens[i].satisfaction = clampStat(base + (rand() % 10)-5);
+        city->citizens[i].satisfaction = clampstat(base + (rand() % 10)-5);
         city->citizens[i].rating = city->citizens[i].satisfaction;
     }
 }
@@ -278,13 +278,13 @@ void randomEvent(City *city) {
 void advanceDay(City *city){
     int farms = countBuilding(city,FARM);
     int plants = countBuilding(city,POWER_PLANT);
-
+    int citizenadd = 0;
     int income, foodProduction, foodConsumption , electricityProduction , electricityConsumption;
 
     city->day++;
     income = city-> population*20;
     foodProduction = farms * 30;
-    electricityProduction = plants*30;
+    electricityProduction = plants*100;
     foodConsumption = city->population /2;
     electricityConsumption = city-> population / 2;
     
@@ -309,16 +309,17 @@ void advanceDay(City *city){
     
     if (city->food < 0) {
         city->food = 0;
-        city->happiness = clampStat(city->happiness - 8);
-        city->health = clampStat(city->health - 3);
+        city->happiness = clampstat(city->happiness - 8);
+        city->health = clampstat(city->health - 3);
     }
     if (city->electricity < 0) {
         city->electricity = 0;
-        city->happiness = clampStat(city->happiness - 8);
+        city->happiness = clampstat(city->happiness - 8);
     }
     
     if (city->population < city->population_limit && city->happiness >= 60) {
-        city->population += rand()%10;
+        citizenadd = rand()%10;
+        city->population += citizenadd;
         if (city->population > city->population_limit) city->population = city->population_limit;
     }
     
@@ -334,6 +335,8 @@ void advanceDay(City *city){
     printf("\nDay %d completed.\n", city->day);
     printf("Income: +$%d | Food production: +%d | Electricity production: +%d\n", income, foodProduction, electricityProduction);
     printf("Food consumed: %d | Electricity consumed: %d\n", foodConsumption, electricityConsumption);
+    printf("New Citizens arrived: %d\n",citizenadd);
+    checkWin(city);
 }
 
 void addMoney(int *money, int amount) {
@@ -420,7 +423,7 @@ void loadAdminPassword(void) {
 }
 
 
-void adminManageBuilding(void){
+void adminManageBuildings(void){
     int i, choice, cost, dm,df,de,cap,happy,health,education;
 
     char password[64], name[40] , symbol;
@@ -509,7 +512,7 @@ for(;;){
             clearInput();
             if (choice != 1) continue;
         printf("Structure name (max 39 characters): ");
-        if(!fget(name,sizeof(name),stdin)) return;
+        if(!fgets(name,sizeof(name),stdin)) return;
         
         name[strcspn(name,"\r\n")] = '\0';
         if(name[0] == '\0' || strchr(name,'|')){
@@ -523,7 +526,7 @@ for(;;){
             for (i = 0; i < building_count; i++) {
                 if (buildings[i].symbol == symbol) {
                     printf("That symbol is already used.\n");
-                    // goto skip_add;
+                    goto skip_add;
                 }
             }
     #define READ_ADMIN_VALUE(prompt, target) do { \
@@ -566,8 +569,7 @@ for(;;){
             fclose(fp);
             building_count++;
             printf("Structure added and saved. It is now available in Add Building.\n");
-skip_add:
-            ; /* label needs a statement */
+skip_add: ;
         } else {
             printf("Invalid choice.\n");
         }
@@ -579,3 +581,143 @@ void getSaveFilename(int slot, char* filename, size_t size){ //generates savefil
     snprintf(filename, size, "%s/%s%02d.txt",SAVE_DIRECTORY,SAVE_FILE_PREFIX,slot);
 }
 
+void listSaves(void) {
+    int slot;
+    char filename[128], line[256], cityName[128], timestamp[128];
+    FILE *fp;
+    printf("\n================ AVAILABLE SAVES ================\n");
+    for (slot = 1; slot <= MAX_SAVE_SLOTS; slot++) {
+        getSaveFilename(slot, filename, sizeof(filename));
+        fp = fopen(filename, "r");
+        if (!fp) continue;
+        cityName[0] = timestamp[0] = '\0';
+        if (fgets(cityName, sizeof(cityName), fp)) cityName[strcspn(cityName, "\r\n")] = '\0';
+        if (fgets(timestamp, sizeof(timestamp), fp)) timestamp[strcspn(timestamp, "\r\n")] = '\0';
+        printf("Slot %2d | %s | City: %s\n", slot, timestamp, cityName);
+        while (fgets(line, sizeof(line), fp)) {
+            if (strncmp(line, "DAY ", 4) == 0) { printf("          %s", line); break; }
+        }
+        fclose(fp);
+    }
+    printf("=================================================\n");
+}
+
+
+static int writeCitizenData(FILE *fp, const City *city) {
+    int i;
+    fprintf(fp, "CITIZENS %d\n", city->citizen_count);
+    for (i = 0; i < city->citizen_count; i++)
+        fprintf(fp, "%d|%s|%d|%d|%d\n", city->citizens[i].id, city->citizens[i].name, city->citizens[i].satisfaction, city->citizens[i].rating, city->citizens[i].active);
+    return 1;
+}
+
+void saveGame(City *city) {
+    int slot, r, c;
+    char filename[128], timestamp[SAVE_TIMESTAMP_SIZE];
+    FILE *fp;
+    printf("\nSave slots:\n");
+    listSaves();
+    printf("Choose slot (1-%d): ", MAX_SAVE_SLOTS);
+    if (scanf("%d", &slot) != 1) { clearInput(); printf("Invalid slot.\n"); return; }
+    clearInput();
+    if (slot < 1 || slot > MAX_SAVE_SLOTS) { printf("Invalid slot.\n"); return; }
+
+    getSaveFilename(slot, filename, sizeof(filename));
+    getCurrentTimestamp(timestamp, sizeof(timestamp));
+    strncpy(city->save_timestamp, timestamp, sizeof(city->save_timestamp) - 1);
+    city->save_timestamp[sizeof(city->save_timestamp) - 1] = '\0';
+
+    fp = fopen(filename, "w");
+    if (!fp) { printf("Could not open save file. Make sure city_saves exists.\n"); return; }
+    fprintf(fp, "%s\n%s\n", city->name, city->save_timestamp);
+    fprintf(fp, "DAY %d\n", city->day);
+    fprintf(fp, "RESOURCES %d %d %d\n", city->money, city->food, city->electricity);
+    fprintf(fp, "POPULATION %d %d\n", city->population, city->population_limit);
+    fprintf(fp, "STATS %d %d %d\n", city->happiness, city->health, city->education);
+    fprintf(fp, "MAYOR_RATING %d\n", city->mayor_rating);
+    fprintf(fp, "CITIZEN_SEED %d\n", city->citizen_seed);
+    fprintf(fp, "MAP\n");
+    for (r = 0; r < MAP_SIZE; r++) {
+        for (c = 0; c < MAP_SIZE; c++) fputc(city->map[r][c], fp);
+        fputc('\n', fp);
+    }
+    writeCitizenData(fp, city);
+    fclose(fp);
+    printf("City saved to slot %d at %s.\n", slot, city->save_timestamp);
+}
+
+
+void loadGame(City *city){
+    int slot, r,c,value;
+    char filename[128] , line[512];
+    FILE *fp;
+    listSaves();
+    printf("Which save slot to load (1-%d): ",MAX_SAVE_SLOTS);
+    if (scanf("%d", &slot) != 1) { clearInput(); printf("Invalid slot.\n"); return; }
+    clearInput();
+    if (slot < 1 || slot > MAX_SAVE_SLOTS) { printf("Invalid slot.\n"); return; }
+    getSaveFilename(slot, filename, sizeof(filename));
+    fp = fopen(filename, "r");
+    if (!fp) { printf("That save slot is empty.\n"); return; }
+
+    memset(city, 0,sizeof(City));
+    if(!fgets(city->name,sizeof(city->name),fp)) showFailmsg;
+    city->name[strcspn(city->name,"\r\n")] = '\0';
+
+    if (!fgets(city->save_timestamp, sizeof(city->save_timestamp), fp)) goto fail;
+    city->save_timestamp[strcspn(city->save_timestamp, "\r\n")] = '\0';
+
+    if (fscanf(fp, "DAY %d\n", &city->day) != 1) showFailmsg;
+    if (fscanf(fp, "RESOURCES %d %d %d\n", &city->money, &city->food, &city->electricity) != 3) showFailmsg;
+    if (fscanf(fp, "POPULATION %d %d\n", &city->population, &city->population_limit) != 2) showFailmsg;
+    if (fscanf(fp, "STATS %d %d %d\n", &city->happiness, &city->health, &city->education) != 3) showFailmsg;
+    if (fscanf(fp, "MAYOR_RATING %d\n", &city->mayor_rating) != 1) showFailmsg;
+    if (fscanf(fp, "CITIZEN_SEED %d\n", &city->citizen_seed) != 1) showFailmsg;
+    if(!fgets(line,sizeof(line),fp)) showFailmsg;
+    for(r=0;r<MAP_SIZE;r++){
+        if(!fgets(line,sizeof(line),fp)) showFailmsg;
+        for(c=0;c<MAP_SIZE;c++){
+            city->map[r][c] = line[c] ? line[c] : '.';
+        }
+    }
+    if (fscanf(fp, "CITIZENS %d\n", &city->citizen_count) != 1) showFailmsg;
+    if (city->citizen_count < 0) city->citizen_count = 0;
+    if (city->citizen_count > MAX_CITIZENS) city->citizen_count = MAX_CITIZENS;
+    for (r = 0; r < city->citizen_count; r++) {
+        if (!fgets(line, sizeof(line), fp)) goto fail;
+        line[strcspn(line, "\r\n")] = '\0';
+        if (sscanf(line, "%d|%31[^|]|%d|%d|%d", &city->citizens[r].id, city->citizens[r].name, &city->citizens[r].satisfaction, &city->citizens[r].rating, &value) != 5) goto fail;
+        city->citizens[r].active = value;
+    }
+    fclose(fp);
+    printf("Loaded '%s' from slot %d (saved %s).\n", city->name, slot, city->save_timestamp);
+    return;
+
+    fail:
+    fclose(fp);
+    printf("Save file is damaged or has an invalid format.\n");
+    initializeCity(city);
+}
+
+void checkWinCond(const City *city){
+    int complete =0;
+     printf("\n--------------- WINNING CONDITION ---------------\n");
+    printf("Population >= 500: %s\n", city->population >= 500 ? "DONE" : "NOT YET"); if (city->population >= 500) complete++;
+    printf("Money >= 20000: %s\n", city->money >= 20000 ? "DONE" : "NOT YET"); if (city->money >= 20000) complete++;
+    printf("Happiness >= 70: %s\n", city->happiness >= 70 ? "DONE" : "NOT YET"); if (city->happiness >= 70) complete++;
+    printf("Food >= 300: %s\n", city->food >= 300 ? "DONE" : "NOT YET"); if (city->food >= 300) complete++;
+    printf("Electricity >= 300: %s\n", city->electricity >= 300 ? "DONE" : "NOT YET"); if (city->electricity >= 300) complete++;
+    printf("Progress: %d / 5\n", complete);
+}
+
+void checkWin(const City *city){
+    int taskcomplete = 0;
+    if (city->population >= 500) taskcomplete++;
+    if (city->money >= 20000) taskcomplete++;
+    if (city->happiness >= 70) taskcomplete++;
+    if (city->food >= 300) taskcomplete++;
+    if (city->electricity >= 300) taskcomplete++;
+    if(taskcomplete==5){
+        printf("CONGRATULATIONS! YOUR CITY HAS THRIVED!\n");
+    }
+}

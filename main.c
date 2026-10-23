@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
         case 7: loadGame(&city); break;
         case 8: adminManageBuildings(); break;
         case 9: calculateCitizenRatings(&city); calculateMayorRating(&city); showCitizens(&city); break;
-        case 10: checkWin(&city); break;
+        case 10: checkWinCond(&city); break;
         case 11: showBitwiseStatus(&city); break;
         case 12: showDynamicBuildings(); break;
         case 0:

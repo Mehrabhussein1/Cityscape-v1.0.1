@@ -27,7 +27,7 @@
 #define ADMIN_PASSWORD_FILE "admin_pass.txt"
 #define ADMIN_PASSWORD_MAX  64
 extern char admin_password[ADMIN_PASSWORD_MAX];
-
+#define showFailmsg goto fail
 
 typedef enum {  //all structures in enum. 
     RESIDENTIAL,
@@ -99,6 +99,7 @@ void randomEvent(City *city);
 void saveGame(City *city);
 void loadGame(City *city);
 void listSaves(void);
+void checkWinCond(const City *city);
 void checkWin(const City *city);
 void addMoney(int *money, int amount);
 void showBitwiseStatus(const City *city);
