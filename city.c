@@ -542,16 +542,40 @@ for(;;){
         READ_ADMIN_VALUE("Health change when built (+/-): ", health);
         READ_ADMIN_VALUE("Education change when built (+/-): ", education);
 #undef READ_ADMIN_VALUE 
+    if (cost < 0) { printf("Cost cannot be negative.\n"); goto skip_add; }
 
+    buildings[building_count].type = (BuildingType)building_count;
+            strncpy(buildings[building_count].name, name, sizeof(buildings[building_count].name)-1);
+            buildings[building_count].name[sizeof(buildings[building_count].name)-1] = '\0';
+            buildings[building_count].symbol = symbol;
+            buildings[building_count].cost = cost;
+            buildings[building_count].daily_money_effect = dm;
+            buildings[building_count].daily_food_effect = df;
+            buildings[building_count].daily_electricity_effect = de;
+            buildings[building_count].population_capacity_effect = cap;
+            buildings[building_count].happiness_effect = happy;
+            buildings[building_count].health_effect = health;
+            buildings[building_count].education_effect = education;
 
-
-
-
-
-
-
-
-
+            fp = fopen(BUILDING_DATA_FILE, "a");
+            if(!fp) { printf("Could not save structure defination\n"); 
+            goto skip_add;
+        }
+            fprintf(fp, "%s|%c|%d|%d|%d|%d|%d|%d|%d|%d\n", name, symbol, cost, dm, df, de,
+                    cap, happy, health, education);
+            fclose(fp);
+            building_count++;
+            printf("Structure added and saved. It is now available in Add Building.\n");
+skip_add:
+            ; /* label needs a statement */
+        } else {
+            printf("Invalid choice.\n");
         }
     }
 }
+
+
+void getSaveFilename(int slot, char* filename, size_t size){ //generates savefile name as in city_saves/save_01.txt
+    snprintf(filename, size, "%s/%s%02d.txt",SAVE_DIRECTORY,SAVE_FILE_PREFIX,slot);
+}
+
