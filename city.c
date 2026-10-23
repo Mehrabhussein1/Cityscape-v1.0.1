@@ -35,11 +35,21 @@ static int clampstat(int value){
 
 
 void getCurrentTimestamp(char *buffer, size_t size){  /////
+
+    char *temp = malloc(size * sizeof(char)); 
+    if (temp == NULL) { 
+        snprintf(buffer, size, "Unknown Time"); 
+        return; 
+    }
+
     time_t now = time(NULL); //gets the system time and stores within now variable (time_t datatype) . NULL means store in nowhere else!
     struct tm *local = localtime(&now); //localtime converts the random time digits into local date and time components and *local is a structure pointer pointing to those components 
     if(local) //checks if localtime did return a pointer or not . not NULL means OK ! 
-    strftime(buffer,size,"%d %B %Y %H:%M:%S",local); //special type of printf to store time components from local's pointed address to the string named "buffer". %B means Month in full form!. 
-    else snprintf(buffer,size,"Unknown Time"); //another special printf to store Unknown time inside the string Buffer!
+    strftime(temp,size,"%d %B %Y %H:%M:%S",local); //special type of printf to store time components from local's pointed address to the string named "buffer". %B means Month in full form!. 
+    else snprintf(temp,size,"Unknown Time"); //another special printf to store Unknown time inside the string Buffer!
+    snprintf(buffer,size,"%s",temp);
+    
+    free(temp);
 }
 
 void initializeCity(City *city){
@@ -74,15 +84,15 @@ void initializeCity(City *city){
 }
 
 void showGuide(void){
-    printf("\n==================================================\n");
-    printf("                 CITYSCAPE v1.0.1\n");
-    printf("==================================================\n");
-    printf("Hi! You Sir, are a Mayor now! Build the city of your Dreams.\nManage the city and build a Megapolis from scratch.\nManage Money, Food, Electricity, Citizen Health and their Education too!\nAdvance days to produce/consume resources and trigger (!random!) events.\n \nAND DON'T FORGET TO SAVE YOUR GAME BEFORE YOU TAKE A BREAK\n \nHAPPY GAMING CITYSCAPE!\n\n");
+    printf(CYAN"\n==================================================\n"RESET);
+    printf(YELLOW "                 CITYSCAPE v1.0.1\n" RESET);
+    printf(CYAN"==================================================\n"RESET);
+    printf(GREEN "You Sir, are a Mayor now! Build the city of your Dreams.\nManage the city and build a Megapolis from scratch.\nManage Money, Food, Electricity, Citizen Health and their Education too!\nAdvance days to produce/consume resources and trigger (!random!) events.\n" RESET RED "\nAND DON'T FORGET TO SAVE YOUR GAME BEFORE YOU TAKE A BREAK!!\n" RESET GREEN"\nHAPPY GAMING CITYSCAPE!\n\n" RESET);
 }
 
 void showStatus(const City *city) {
     float usage = city->population_limit > 0 ? ((float)city->population / city->population_limit) * 100.0f : 0.0f;
-    printf("\n---------------- CITY STATUS ----------------\n");
+    printf(CYAN"\n---------------- CITY STATUS ----------------\n"RESET);
     printf("City: %s\n", city->name);
     printf("Day: %d\n", city->day);
     printf("Money: $%d\n", city->money);
@@ -94,19 +104,19 @@ void showStatus(const City *city) {
     printf("Education: %d/100\n", city->education);
     printf("Citizens: %d\n", city->citizen_count);
     printf("Mayor Rating: %d/100\n", city->mayor_rating);
-    if (city->food <= 0) printf("WARNING: Food shortage!\n");
-    if (city->electricity <= 0) printf("WARNING: Electricity shortage!\n");
-    printf("----------------------------------------------\n");
+    if (city->food <= 0) printf(RED"WARNING: Food shortage!\n"RESET);
+    if (city->electricity <= 0) printf(RED"WARNING: Electricity shortage!\n"RED);
+    printf(CYAN"----------------------------------------------\n"RESET);
 }
 
 void showMap(const City *city) {
 int r,c;
 printf("\n     ");
 for(c =0; c<MAP_SIZE;c++)
-    printf("%d ", c);
+    printf(YELLOW"%d "RESET, c);
 printf("\n");
 for(r=0;r<MAP_SIZE;r++){
-    printf("%2d   ",r);
+    printf(YELLOW"%2d   "RESET,r);
     for(c=0;c<MAP_SIZE;c++) 
         printf("%c ",city->map[r][c]);
     printf("\n");
@@ -116,12 +126,12 @@ for(r=0;r<MAP_SIZE;r++){
 
 void showBuildings(void) {
     int i;
-    printf("\n---------------- BUILDINGS ----------------\n");
+    printf(CYAN"\n---------------- BUILDINGS ----------------\n"RESET);
     for (i = 0; i < building_count; i++) {
         const Building *b = &buildings[i];
-        printf("%d. %s [%c] - $%d\n", i + 1, b->name, b->symbol, b->cost);
-        printf("  Daily: Money %+d, Food %+d, Electricity %+d\n", b->daily_money_effect, b->daily_food_effect, b->daily_electricity_effect);
-        printf("  Capacity %+d, Happiness %+d, Health %+d, Education %+d\n", b->population_capacity_effect, b->happiness_effect, b->health_effect, b->education_effect);
+        printf(GREEN"%d. %s [%c] - $%d\n"RESET, i + 1, b->name, b->symbol, b->cost);
+        printf(YELLOW"  Daily: Money %+d, Food %+d, Electricity %+d\n"RESET, b->daily_money_effect, b->daily_food_effect, b->daily_electricity_effect);
+        printf(YELLOW"  Capacity %+d, Happiness %+d, Health %+d, Education %+d\n"RESET, b->population_capacity_effect, b->happiness_effect, b->health_effect, b->education_effect);
     }
 }
 
@@ -166,31 +176,31 @@ void addBuilding(City *city) {
     int choice, row, col;
     showMap(city);
     showBuildings();
-    printf("Choose building (1-%d): ", building_count);
-    if (scanf("%d", &choice) != 1) { clearInput(); printf("Invalid choice.\n"); return; }
+    printf(YELLOW"Choose building (1-%d): "RESET, building_count);
+    if (scanf("%d", &choice) != 1) { clearInput(); printf(RED"Invalid choice.\n"RESET); return; }
     clearInput();
-    if (choice < 1 || choice > building_count) { printf("Invalid building.\n"); return; }
+    if (choice < 1 || choice > building_count) { printf(RED"Invalid building.\n"RESET); return; }
 
     const Building *b = &buildings[choice - 1];
-    if (city->money < b->cost) { printf("Not enough money. Need $%d.\n", b->cost); return; }
+    if (city->money < b->cost) { printf(RED"Not enough money. Need $%d.\n"RESET, b->cost); return; }
 
-    printf("Enter row (0-%d): ", MAP_SIZE - 1);
+    printf(MAGENTA"Enter row (0-%d): "RESET, MAP_SIZE - 1);
 
-    if (scanf("%d", &row) != 1) { clearInput(); printf("Invalid row.\n"); return; }
+    if (scanf("%d", &row) != 1) { clearInput(); printf(RED"Invalid row.\n"RESET); return; }
 
-    printf("Enter column (0-%d): ", MAP_SIZE - 1);
+    printf(MAGENTA"Enter column (0-%d): "RESET, MAP_SIZE - 1);
 
-    if (scanf("%d", &col) != 1) { clearInput(); printf("Invalid column.\n"); return; }
+    if (scanf("%d", &col) != 1) { clearInput(); printf(RED"Invalid column.\n"RESET); return; }
 
     clearInput();
-    if (row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) { printf("Invalid location.\n"); return; }
+    if (row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) { printf(RED"Invalid location.\n"RESET); return; }
 
-    if (city->map[row][col] != '.') { printf("That location is occupied.\n"); return; }
+    if (city->map[row][col] != '.') { printf(YELLOW"That location is occupied.\n"RESET); return; }
 
     city->map[row][col] = b->symbol;
     city->money -= b->cost;
     applyBuildingEffects(city, b->type, 1);
-    printf("%s built successfully for $%d.\n", b->name, b->cost);
+    printf(GREEN"%s built successfully for $%d.\n"RESET, b->name, b->cost);
     showMap(city);
 }
 
@@ -199,20 +209,20 @@ void deleteBuilding(City *city) {
     int row, col;
     showMap(city);
     printf("Enter row to delete: ");
-    if (scanf("%d", &row) != 1) { clearInput(); printf("Invalid row.\n"); return; }
+    if (scanf("%d", &row) != 1) { clearInput(); printf(RED"Invalid row.\n"RESET); return; }
     printf("Enter column to delete: ");
-    if (scanf("%d", &col) != 1) { clearInput(); printf("Invalid column.\n"); return; }
+    if (scanf("%d", &col) != 1) { clearInput(); printf(RED"Invalid column.\n"RESET); return; }
     clearInput();
-    if (row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) { printf("Invalid location.\n"); return; }
-    if (city->map[row][col] == '.') { printf("That location is empty.\n"); return; }
+    if (row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) { printf(RED"Invalid location.\n"RESET); return; }
+    if (city->map[row][col] == '.') { printf(YELLOW"That location is empty.\n"RESET); return; }
 
     BuildingType type = symbolToType(city->map[row][col]);
-    if ((int)type == building_count) { printf("Unknown structure.\n"); return; }
+    if ((int)type == building_count) { printf(YELLOW"Unknown structure.\n"RESET); return; }
     const Building *b = getBuilding(type);
     city->map[row][col] = '.';
     city->money += b->cost / 2;
     applyBuildingEffects(city, type, -1);
-    printf("%s removed. Half of its cost ($%d) was refunded.\n", b->name, b->cost / 2);
+    printf(GREEN"%s removed. Half of its cost ($%d) was refunded.\n"RESET, b->name, b->cost / 2);
     showMap(city);
 }
 
@@ -249,28 +259,33 @@ void randomEvent(City *city) {
     int roll = rand() % 100;
     int event;
     if (roll >= 25) return;
-    event = rand() % 3;
+    event = rand() % 4;
     printf("\n*** RANDOM EVENT ***\n");
     switch (event) {
         case 0:
             data.money = 1000 + rand() % 2001;
             addMoney(&city->money, data.money);
-            printf("Economic bonus! The city received $%d.\n", data.money);
+            printf(GREEN"Economic bonus! The city received $%d.\n"RESET, data.money);
             break;
         case 1:
             data.food = 40 + rand() % 61;
             city->food += data.food;
-            printf("Good harvest! The city received %d food.\n", data.food);
+            printf(YELLOW"Good harvest! The city received %d food.\n"RESET, data.food);
             break;
         case 2:
             data.population = 1 + rand() % 4;
             if (city->population + data.population <= city->population_limit) {
                 city->population += data.population;
                 city->citizen_count = city->population;
-                printf("New residents arrived: +%d population.\n", data.population);
+                printf(GREEN"New residents arrived: +%d population.\n"RESET, data.population);
             } else {
-                printf("New residents wanted to arrive, but there is not enough housing.\n");
+                printf(RED"New residents wanted to arrive, but there is not enough housing.\n"RESET);
             }
+            break;
+        case 3:
+            data.food = 10+ rand() % 10;
+            city->food -= data.food;
+            printf(RED"Harvesting failure! The city lost %d food.\n" RESET,data.food);
             break;
     }
 }
@@ -332,10 +347,10 @@ void advanceDay(City *city){
     calculateCitizenRatings(city);
     calculateMayorRating(city);
 
-    printf("\nDay %d completed.\n", city->day);
-    printf("Income: +$%d | Food production: +%d | Electricity production: +%d\n", income, foodProduction, electricityProduction);
-    printf("Food consumed: %d | Electricity consumed: %d\n", foodConsumption, electricityConsumption);
-    printf("New Citizens arrived: %d\n",citizenadd);
+    printf(MAGENTA"\nDay %d completed.\n"RESET, city->day -1 );
+    printf(GREEN"Income: +$%d | Food production: +%d | Electricity production: +%d\n"RESET, income, foodProduction, electricityProduction);
+    printf(YELLOW"Food consumed: %d | Electricity consumed: %d\n"RESET, foodConsumption, electricityConsumption);
+    printf(GREEN"New Citizens arrived: %d\n"RESET,citizenadd);
     checkWin(city);
 }
 
@@ -345,12 +360,12 @@ void addMoney(int *money, int amount) {
 
 void showCitizens(const City *city) {
     int i, limit = city->citizen_count < 20 ? city->citizen_count : 20;
-    printf("\n----------- CITIZENS & MAYOR RATING -----------\n");
-    printf("Showing %d of %d citizens\n", limit, city->citizen_count);
+    printf(CYAN BOLD"\n----------- CITIZENS & MAYOR RATING -----------\n"RESET);
+    printf(YELLOW"Showing %d of %d citizens\n"RESET, limit, city->citizen_count);
     for (i = 0; i < limit; i++)
-        printf("%-14s Satisfaction: %3d  Rating: %3d\n", city->citizens[i].name, city->citizens[i].satisfaction, city->citizens[i].rating);
+        printf(CYAN"%-14s Satisfaction: %3d  Rating: %3d\n"RESET, city->citizens[i].name, city->citizens[i].satisfaction, city->citizens[i].rating);
     if (city->citizen_count > limit) printf("...and %d more citizens.\n", city->citizen_count - limit);
-    printf("Overall Mayor Rating: %d/100\n", city->mayor_rating);
+    printf(YELLOW"Overall Mayor Rating: %d/100\n"RESET, city->mayor_rating);
 }
 
 
@@ -358,17 +373,17 @@ void showBitwiseStatus(const City *city) {
     int status = 0;
     if (city->food > 0) status = status | 1; //food ok = 01 elec ok = 10 both ok = 11
     if (city->electricity > 0) status = status | 2;
-    printf("\nCity status flags: %d\n", status);
-    printf("Food available: %s\n", (status & 1) ? "YES" : "NO");
-    printf("Electricity available: %s\n", (status & 2) ? "YES" : "NO");
+    printf(YELLOW"\nCity status flags: %d\n"RESET, status);
+    printf("Food available: %s\n", (status & 1) ? GREEN"YES"RESET : RED"NO"RESET);
+    printf("Electricity available: %s\n", (status & 2) ? GREEN"YES"RESET : RED"NO"RESET);
 }
 
 void showDynamicBuildings(void) {
     int i;
     int *costs = (int *)malloc(building_count * sizeof(int));
-    if (!costs) { printf("Dynamic allocation failed.\n"); return; }
+    if (!costs) { printf(RED"Dynamic allocation failed.\n"RESET); return; }
     for (i = 0; i < building_count; i++) *(costs + i) = buildings[i].cost;
-    printf("\nDynamic building cost array (pointer arithmetic):\n");
+    printf(CYAN"\nDynamic building cost array (pointer arithmetic):\n"RESET);
     for (i = 0; i < building_count; i++) printf("%s -> $%d\n", buildings[i].name, *(costs + i));
     free(costs);
 }
@@ -429,52 +444,52 @@ void adminManageBuildings(void){
     char password[64], name[40] , symbol;
     FILE* fp;
 
-printf("\n==== ADMIN / STRUCTURE DATA ====\n");
-printf("Enter admin password (0 to cancel): ");
+printf(CYAN BOLD"\n==== ADMIN / STRUCTURE DATA ====\n"RESET);
+printf(YELLOW"Enter admin password (0 to cancel): "RESET);
 if(!fgets(password,sizeof(password),stdin)) return;
 password[strcspn(password,"\r\n")] = '\0';
 if(strcmp(password,"0")==0) return;
 if(strcmp(password,admin_password)!=0){
-    printf("Incorrect password. Access denied.\n");
+    printf(RED"Incorrect password. Access denied.\n"RESET);
     return;
 }
 
 for(;;){
-    printf("\n==== ADMIN PANEL ====\n");
+    printf(CYAN BOLD"\n==== ADMIN PANEL ====\n"RESET);
     printf("1. Add structures\n");
         printf("2. Change admin password\n");
         printf("3. Close admin panel\n");
-        printf("Choice: ");
-        if (scanf("%d", &choice) != 1) { clearInput(); printf("Invalid choice.\n"); continue; }
+        printf(YELLOW"Choice: "RESET);
+        if (scanf("%d", &choice) != 1) { clearInput(); printf(RED"Invalid choice.\n"RESET); continue; }
         clearInput();
 
      if (choice == 3) {
-            printf("Admin panel closed.\n");
+            printf(GREEN"Admin panel closed.\n"RESET);
             return;   }
     else if(choice ==2){
         char current[64],newPass[64],confirm[64];
 
-        printf("Enter current password: ");
+        printf(YELLOW"Enter current password: "RESET);
         if(!fgets(current,sizeof(current),stdin)) return;
         current[strcspn(current, "\r\n")] = '\0';
         if(strcmp(current,admin_password)!=0) {
-            printf("Incorrect Current Password. Password Unchanged!\n");
+            printf(RED"Incorrect Current Password. Password Unchanged!\n"RESET);
             continue;
         }
 
-       printf("Enter new password: ");
+       printf(YELLOW"Enter new password: "RESET);
             if (!fgets(newPass, sizeof(newPass), stdin)) return;
             newPass[strcspn(newPass, "\r\n")] = '\0';
             if (newPass[0] == '\0' || strchr(newPass, '|')) {
-                printf("Invalid password (empty or contains '|'). Password unchanged.\n");
+                printf(RED"Invalid password (empty or contains '|'). Password unchanged.\n"RESET);
                 continue;
             }
 
-            printf("Confirm new password: ");
+            printf(YELLOW"Confirm new password: "RESET);
             if (!fgets(confirm, sizeof(confirm), stdin)) return;
             confirm[strcspn(confirm, "\r\n")] = '\0';
             if (strcmp(newPass, confirm) != 0) {
-                printf("Passwords do not match. Password unchanged.\n");
+                printf(RED"Passwords do not match. Password unchanged.\n"RESET);
                 continue;
             }
             strncpy(admin_password, newPass, ADMIN_PASSWORD_MAX - 1);
@@ -482,31 +497,31 @@ for(;;){
 
             fp = fopen(ADMIN_PASSWORD_FILE,"w");
             if(!fp){
-                printf("Warning: password changed for this session but could not be saved to %s.\n",ADMIN_PASSWORD_FILE);
+                printf(RED"Warning: password changed for this session but could not be saved to %s.\n"RESET,ADMIN_PASSWORD_FILE);
             } else{
                 fprintf(fp,"%s\n",admin_password);
                 fclose(fp);
-                printf("Admin password changed and saved. \n");
+                printf(GREEN"Admin password changed and saved. \n"RESET);
             }
             continue;
     }   else if(choice ==1){
             for (i = 0; i < building_count; i++) {
                 const Building *b = &buildings[i];
-                printf("[%d] %s | Symbol: %c | Cost: $%d\n", i + 1, b->name, b->symbol, b->cost);
-                printf("    Daily money %+d | food %+d | electricity %+d | capacity %+d\n",
+                printf(GREEN"[%d] %s | Symbol: %c | Cost: $%d\n"RESET, i + 1, b->name, b->symbol, b->cost);
+                printf(YELLOW"    Daily money %+d | food %+d | electricity %+d | capacity %+d\n"RESET,
                        b->daily_money_effect, b->daily_food_effect, b->daily_electricity_effect,
                        b->population_capacity_effect);
-                printf("    Happiness %+d | Health %+d | Education %+d\n",
+                printf(YELLOW"    Happiness %+d | Health %+d | Education %+d\n"RESET,
                        b->happiness_effect, b->health_effect, b->education_effect);
             }
             if(building_count >= MAX_BUILDINGS){
-                printf("Structure limit reached! Can't add anymore structures\n"); continue;
+                printf(RED"Structure limit reached! Can't add anymore structures\n"RESET); continue;
             }
 
-            printf("\nAdd a new structure? (1 = yes, 0 = no): ");
+            printf(CYAN"\nAdd a new structure? (1 = yes, 0 = no): "RESET);
             if (scanf("%d", &choice) != 1) { 
                 clearInput(); 
-                printf("Invalid choice.\n");
+                printf(RED"Invalid choice.\n"RESET);
                 continue; 
             }
             clearInput();
@@ -516,23 +531,23 @@ for(;;){
         
         name[strcspn(name,"\r\n")] = '\0';
         if(name[0] == '\0' || strchr(name,'|')){
-            printf("Invalid name.\n"); continue; 
+            printf(RED"Invalid name.\n"RESET); continue; 
         }
 
         printf("One-character map symbol: ");
-            if (scanf(" %c", &symbol) != 1) { clearInput(); printf("Invalid symbol.\n"); continue; }
+            if (scanf(" %c", &symbol) != 1) { clearInput(); printf(RED"Invalid symbol.\n"RESET); continue; }
             clearInput();
-            if (symbol == '.' || symbol == '|' || symbol == '\n') { printf("That symbol is reserved.\n"); continue; }
+            if (symbol == '.' || symbol == '|' || symbol == '\n') { printf(RED"That symbol is reserved.\n"RESET); continue; }
             for (i = 0; i < building_count; i++) {
                 if (buildings[i].symbol == symbol) {
-                    printf("That symbol is already used.\n");
+                    printf(RED"That symbol is already used.\n"RESET);
                     goto skip_add;
                 }
             }
     #define READ_ADMIN_VALUE(prompt, target) do { \
     printf(prompt); \
     if (scanf("%d", &(target)) != 1) { clearInput(); \
-    printf("Invalid number. Structure not added.\n"); \
+    printf(RED"Invalid number. Structure not added.\n"RESET); \
     goto skip_add; } \
     clearInput(); \
 } while (0)
@@ -545,7 +560,7 @@ for(;;){
         READ_ADMIN_VALUE("Health change when built (+/-): ", health);
         READ_ADMIN_VALUE("Education change when built (+/-): ", education);
 #undef READ_ADMIN_VALUE 
-    if (cost < 0) { printf("Cost cannot be negative.\n"); goto skip_add; }
+    if (cost < 0) { printf(RED"Cost cannot be negative.\n"RESET); goto skip_add; }
 
     buildings[building_count].type = (BuildingType)building_count;
             strncpy(buildings[building_count].name, name, sizeof(buildings[building_count].name)-1);
@@ -561,17 +576,17 @@ for(;;){
             buildings[building_count].education_effect = education;
 
             fp = fopen(BUILDING_DATA_FILE, "a");
-            if(!fp) { printf("Could not save structure defination\n"); 
+            if(!fp) { printf(RED"Could not save structure defination\n"RESET); 
             goto skip_add;
         }
             fprintf(fp, "%s|%c|%d|%d|%d|%d|%d|%d|%d|%d\n", name, symbol, cost, dm, df, de,
                     cap, happy, health, education);
             fclose(fp);
             building_count++;
-            printf("Structure added and saved. It is now available in Add Building.\n");
+            printf(GREEN"Structure added and saved. It is now available in Add Building.\n"RESET);
 skip_add: ;
         } else {
-            printf("Invalid choice.\n");
+            printf(RED"Invalid choice.\n"RESET);
         }
     }
 }
@@ -585,7 +600,7 @@ void listSaves(void) {
     int slot;
     char filename[128], line[256], cityName[128], timestamp[128];
     FILE *fp;
-    printf("\n================ AVAILABLE SAVES ================\n");
+    printf(MAGENTA"\n================ AVAILABLE SAVES ================\n"RESET);
     for (slot = 1; slot <= MAX_SAVE_SLOTS; slot++) {
         getSaveFilename(slot, filename, sizeof(filename));
         fp = fopen(filename, "r");
@@ -599,7 +614,7 @@ void listSaves(void) {
         }
         fclose(fp);
     }
-    printf("=================================================\n");
+    printf(MAGENTA"=================================================\n"RESET);
 }
 
 
@@ -615,12 +630,12 @@ void saveGame(City *city) {
     int slot, r, c;
     char filename[128], timestamp[SAVE_TIMESTAMP_SIZE];
     FILE *fp;
-    printf("\nSave slots:\n");
+    printf(CYAN"\nSave slots:\n"RESET);
     listSaves();
-    printf("Choose slot (1-%d): ", MAX_SAVE_SLOTS);
-    if (scanf("%d", &slot) != 1) { clearInput(); printf("Invalid slot.\n"); return; }
+    printf(YELLOW"Choose slot (1-%d): "RESET, MAX_SAVE_SLOTS);
+    if (scanf("%d", &slot) != 1) { clearInput(); printf(RED"Invalid slot.\n"RESET); return; }
     clearInput();
-    if (slot < 1 || slot > MAX_SAVE_SLOTS) { printf("Invalid slot.\n"); return; }
+    if (slot < 1 || slot > MAX_SAVE_SLOTS) { printf(RED"Invalid slot.\n"RESET); return; }
 
     getSaveFilename(slot, filename, sizeof(filename));
     getCurrentTimestamp(timestamp, sizeof(timestamp));
@@ -628,7 +643,7 @@ void saveGame(City *city) {
     city->save_timestamp[sizeof(city->save_timestamp) - 1] = '\0';
 
     fp = fopen(filename, "w");
-    if (!fp) { printf("Could not open save file. Make sure city_saves exists.\n"); return; }
+    if (!fp) { printf(RED"Could not open save file. Make sure city_saves exists.\n"RESET); return; }
     fprintf(fp, "%s\n%s\n", city->name, city->save_timestamp);
     fprintf(fp, "DAY %d\n", city->day);
     fprintf(fp, "RESOURCES %d %d %d\n", city->money, city->food, city->electricity);
@@ -643,7 +658,7 @@ void saveGame(City *city) {
     }
     writeCitizenData(fp, city);
     fclose(fp);
-    printf("City saved to slot %d at %s.\n", slot, city->save_timestamp);
+    printf(GREEN"City saved to slot %d at %s.\n"RESET, slot, city->save_timestamp);
 }
 
 
@@ -652,13 +667,13 @@ void loadGame(City *city){
     char filename[128] , line[512];
     FILE *fp;
     listSaves();
-    printf("Which save slot to load (1-%d): ",MAX_SAVE_SLOTS);
-    if (scanf("%d", &slot) != 1) { clearInput(); printf("Invalid slot.\n"); return; }
+    printf(YELLOW"Which save slot to load (1-%d): "RESET,MAX_SAVE_SLOTS);
+    if (scanf("%d", &slot) != 1) { clearInput(); printf(RED"Invalid slot.\n"RESET); return; }
     clearInput();
-    if (slot < 1 || slot > MAX_SAVE_SLOTS) { printf("Invalid slot.\n"); return; }
+    if (slot < 1 || slot > MAX_SAVE_SLOTS) { printf(RED"Invalid slot.\n"RESET); return; }
     getSaveFilename(slot, filename, sizeof(filename));
     fp = fopen(filename, "r");
-    if (!fp) { printf("That save slot is empty.\n"); return; }
+    if (!fp) { printf(RED"That save slot is empty.\n"RESET); return; }
 
     memset(city, 0,sizeof(City));
     if(!fgets(city->name,sizeof(city->name),fp)) showFailmsg;
@@ -690,23 +705,23 @@ void loadGame(City *city){
         city->citizens[r].active = value;
     }
     fclose(fp);
-    printf("Loaded '%s' from slot %d (saved %s).\n", city->name, slot, city->save_timestamp);
+    printf(GREEN"Loaded '%s' from slot %d (saved %s).\n"RESET, city->name, slot, city->save_timestamp);
     return;
 
     fail:
     fclose(fp);
-    printf("Save file is damaged or has an invalid format.\n");
+    printf(RED"Save file is damaged or has an invalid format.\n"RESET);
     initializeCity(city);
 }
 
 void checkWinCond(const City *city){
     int complete =0;
-     printf("\n--------------- WINNING CONDITION ---------------\n");
-    printf("Population >= 500: %s\n", city->population >= 500 ? "DONE" : "NOT YET"); if (city->population >= 500) complete++;
-    printf("Money >= 20000: %s\n", city->money >= 20000 ? "DONE" : "NOT YET"); if (city->money >= 20000) complete++;
-    printf("Happiness >= 70: %s\n", city->happiness >= 70 ? "DONE" : "NOT YET"); if (city->happiness >= 70) complete++;
-    printf("Food >= 300: %s\n", city->food >= 300 ? "DONE" : "NOT YET"); if (city->food >= 300) complete++;
-    printf("Electricity >= 300: %s\n", city->electricity >= 300 ? "DONE" : "NOT YET"); if (city->electricity >= 300) complete++;
+     printf(CYAN"\n--------------- WINNING CONDITION ---------------\n"RESET);
+    printf("Population >= 500: %s\n", city->population >= 500 ? GREEN"DONE"RESET : YELLOW"NOT YET"RESET); if (city->population >= 500) complete++;
+    printf("Money >= 20000: %s\n", city->money >= 20000 ? GREEN"DONE"RESET : YELLOW"NOT YET"RESET); if (city->money >= 20000) complete++;
+    printf("Happiness >= 70: %s\n", city->happiness >= 70 ? GREEN"DONE"RESET : YELLOW"NOT YET"RESET); if (city->happiness >= 70) complete++;
+    printf("Food >= 300: %s\n", city->food >= 300 ? GREEN"DONE"RESET : YELLOW"NOT YET"RESET); if (city->food >= 300) complete++;
+    printf("Electricity >= 300: %s\n", city->electricity >= 300 ? GREEN"DONE"RESET : YELLOW"NOT YET"RESET); if (city->electricity >= 300) complete++;
     printf("Progress: %d / 5\n", complete);
 }
 
@@ -718,6 +733,6 @@ void checkWin(const City *city){
     if (city->food >= 300) taskcomplete++;
     if (city->electricity >= 300) taskcomplete++;
     if(taskcomplete==5){
-        printf("CONGRATULATIONS! YOUR CITY HAS THRIVED!\n");
+        printf(MAGENTA"CONGRATULATIONS! YOUR CITY HAS THRIVED!\n"RESET);
     }
 }

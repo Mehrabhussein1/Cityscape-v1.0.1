@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
         strncpy(city.name, argv[1], sizeof(city.name) - 1);
         city.name[sizeof(city.name) - 1] = '\0';
     } else {
-        printf("Enter your city name: ");
+        printf(MAGENTA"Enter your city name: "RESET);
         if (fgets(city.name, sizeof(city.name), stdin)) {
             city.name[strcspn(city.name, "\r\n")] = '\0';
         }
@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 
     while (1) {
         showStatus(&city);
-        printf("\n=============== MAIN MENU ===============\n");
+        printf(CYAN BOLD"\n=============== MAIN MENU ===============\n"RESET);
         printf("1. Add Building\n");
         printf("2. Delete Building\n");
         printf("3. View City Map\n");
@@ -35,14 +35,14 @@ int main(int argc, char *argv[]) {
         printf("9. View Citizens & Mayor Rating\n");
         printf("10. Check Winning Condition\n");
         printf("11. View City Status Flags\n");
-        printf("12. View Dynamic Building Data\n");
-        printf("0. Exit\n");
-        printf("==========================================\n");
-        printf("Enter choice: ");
+        printf("12. View Dynamic Building Data\n"RESET);
+        printf(RED"0. Exit\n"RESET);
+        printf(CYAN BOLD"==========================================\n"RESET);
+        printf(YELLOW"Enter choice: "RESET);
 
         if (scanf("%d", &choice) != 1) {
             clearInput();
-            printf("Invalid input. Please enter a number.\n");
+            printf(RED"Invalid input. Please enter a number.\n"RESET);
             continue;
         }
         clearInput();
@@ -61,10 +61,10 @@ int main(int argc, char *argv[]) {
         case 11: showBitwiseStatus(&city); break;
         case 12: showDynamicBuildings(); break;
         case 0:
-            printf("Thanks for playing Cityscape!\n");
+            printf(MAGENTA"Thanks for playing Cityscape!\n"RESET);
             return 0;
         default:
-            printf("Unknown menu option.\n");
+            printf(RED"Unknown menu option.\n"RESET);
         }
     }
 }
