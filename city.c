@@ -16,13 +16,12 @@ const Building *getBuilding(BuildingType type){
     if((int)type<0 || (int)type>=building_count){ 
         return NULL;
     }
-    return &buildings[type]; //returns the location of the buildings struct at line 5 (points to the type we want)
+    return &buildings[type];
 }
 
 void clearInput(void){
     int c;
     while((c=getchar())!='\n' && c!= EOF){
-// only clearing the keyboard's input buffer
 }
 }
 
@@ -42,11 +41,11 @@ void getCurrentTimestamp(char *buffer, size_t size){  /////
         return; 
     }
 
-    time_t now = time(NULL); //gets the system time and stores within now variable (time_t datatype) . NULL means store in nowhere else!
-    struct tm *local = localtime(&now); //localtime converts the random time digits into local date and time components and *local is a structure pointer pointing to those components 
-    if(local) //checks if localtime did return a pointer or not . not NULL means OK ! 
-    strftime(temp,size,"%d %B %Y %H:%M:%S",local); //special type of printf to store time components from local's pointed address to the string named "buffer". %B means Month in full form!. 
-    else snprintf(temp,size,"Unknown Time"); //another special printf to store Unknown time inside the string Buffer!
+    time_t now = time(NULL); 
+    struct tm *local = localtime(&now); 
+    if(local) 
+    strftime(temp,size,"%d %B %Y %H:%M:%S",local); 
+    else snprintf(temp,size,"Unknown Time"); 
     snprintf(buffer,size,"%s",temp);
     
     free(temp);
@@ -180,23 +179,33 @@ void addBuilding(City *city) {
     if (scanf("%d", &choice) != 1) { clearInput(); printf(RED"Invalid choice.\n"RESET); return; }
     clearInput();
     if (choice < 1 || choice > building_count) { printf(RED"Invalid building.\n"RESET); return; }
-
     const Building *b = &buildings[choice - 1];
-    if (city->money < b->cost) { printf(RED"Not enough money. Need $%d.\n"RESET, b->cost); return; }
+    if (city->money < b->cost) {
+    printf(RED"Not enough money. Need $%d.\n"RESET, b->cost); 
+    return; 
+}
 
     printf(MAGENTA"Enter row (0-%d): "RESET, MAP_SIZE - 1);
-
-    if (scanf("%d", &row) != 1) { clearInput(); printf(RED"Invalid row.\n"RESET); return; }
-
+    if (scanf("%d", &row) != 1) {
+    clearInput(); 
+    printf(RED"Invalid row.\n"RESET); 
+    return; 
+}
     printf(MAGENTA"Enter column (0-%d): "RESET, MAP_SIZE - 1);
-
-    if (scanf("%d", &col) != 1) { clearInput(); printf(RED"Invalid column.\n"RESET); return; }
-
+    if (scanf("%d", &col) != 1) 
+    { clearInput(); 
+    printf(RED"Invalid column.\n"RESET); 
+    return; 
+}
     clearInput();
-    if (row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) { printf(RED"Invalid location.\n"RESET); return; }
 
-    if (city->map[row][col] != '.') { printf(YELLOW"That location is occupied.\n"RESET); return; }
-
+    if (row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) { printf(RED"Invalid location.\n"RESET); 
+        return; 
+    }
+    if (city->map[row][col] != '.') { 
+        printf(YELLOW"That location is occupied.\n"RESET);
+        return; 
+    }
     city->map[row][col] = b->symbol;
     city->money -= b->cost;
     applyBuildingEffects(city, b->type, 1);
@@ -426,10 +435,10 @@ void loadAdminPassword(void) {
     FILE *fp = fopen(ADMIN_PASSWORD_FILE, "r");
     char buf[ADMIN_PASSWORD_MAX];
 
-    if (fp == NULL) return;  /* no file yet -> keep default "1234" */
+    if (fp == NULL) return;  
     if (fgets(buf, sizeof(buf), fp)) {
         buf[strcspn(buf, "\r\n")] = '\0';
-        if (buf[0] != '\0' && !strchr(buf, '|')) { //checks if password is empty or pass has '|' , if not , OK
+        if (buf[0] != '\0' && !strchr(buf, '|')) { 
             strncpy(admin_password, buf, ADMIN_PASSWORD_MAX - 1);
             admin_password[ADMIN_PASSWORD_MAX - 1] = '\0';
         }
