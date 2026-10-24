@@ -6,7 +6,7 @@ static Building buildings[MAX_BUILDINGS] = {
     {RESIDENTIAL, "Residential Area", 'R', 2000, 0, 0, 0, 20, 0, 0, 0},
     {FARM, "Farm", 'F', 1500, 0, 30, 0, 0, 0, 0, 0},
     {POWER_PLANT, "Power Plant", 'P', 3000, 0, 0, 100, 0, -1, 0, 0},
-    {HOSPITAL, "Hospital", 'H', 2500, 0, 0, 0, 0, 5, 5, 0},
+    {HOSPITAL, "Hospital", 'H', 2500, 0, 0, 0, 0, 5, 20, 0},
     {SCHOOL, "School", 'S', 2000, 0, 0, 0, 0, 5, 0, 5},
     {PARK, "Park", 'K', 1800, 0, 0, 0, 0, 8, 2, 0}};
 
@@ -237,6 +237,25 @@ void deleteBuilding(City *city) {
 
 
 
+static void initializeNewCitizens(City *city, int old_count, int new_count) {
+    int i;
+
+    if (old_count < 0) old_count = 0;
+    if (old_count > MAX_CITIZENS) old_count = MAX_CITIZENS;
+    if (new_count < 0) new_count = 0;
+    if (new_count > MAX_CITIZENS) new_count = MAX_CITIZENS;
+
+    for (i = old_count; i < new_count; i++) {
+        city->citizens[i].id = i + 1;
+        snprintf(city->citizens[i].name,
+                 sizeof(city->citizens[i].name),
+                 "Citizen_%03d", i + 1);
+        city->citizens[i].satisfaction = 70;
+        city->citizens[i].rating = 70;
+        city->citizens[i].active = 1;
+    }
+}
+
 void calculateCitizenRatings(City *city) {
     int i;
     int base = (city->happiness + city->health + city->education) / 3;
@@ -281,16 +300,21 @@ void randomEvent(City *city) {
             city->food += data.food;
             printf(YELLOW"Good harvest! The city received %d food.\n"RESET, data.food);
             break;
-        case 2:
+        case 2: {
+            int old_count = city->citizen_count;
             data.population = 1 + rand() % 4;
-            if (city->population + data.population <= city->population_limit) {
+
+            if (city->population + data.population <= city->population_limit &&
+                city->population + data.population <= MAX_CITIZENS) {
                 city->population += data.population;
                 city->citizen_count = city->population;
+                initializeNewCitizens(city, old_count, city->citizen_count);
                 printf(GREEN"New residents arrived: +%d population.\n"RESET, data.population);
             } else {
-                printf(RED"New residents wanted to arrive, but there is not enough housing.\n"RESET);
+                printf(RED"New residents wanted to arrive, but there is not enough housing or citizen capacity.\n"RESET);
             }
             break;
+        }
         case 3:
             data.food = 10+ rand() % 10;
             city->food -= data.food;
@@ -303,6 +327,7 @@ void advanceDay(City *city){
     int farms = countBuilding(city,FARM);
     int plants = countBuilding(city,POWER_PLANT);
     int citizenadd = 0;
+    int old_count = city->citizen_count;
     int income, foodProduction, foodConsumption , electricityProduction , electricityConsumption;
 
     city->day++;
@@ -312,7 +337,6 @@ void advanceDay(City *city){
     foodConsumption = city->population /2;
     electricityConsumption = city-> population / 2;
     
-    //custom buildings
     {
         int i, r, c, count;
         for (i = BUILDING_TYPE_COUNT; i < building_count; i++) {
@@ -341,14 +365,23 @@ void advanceDay(City *city){
         city->happiness = clampstat(city->happiness - 8);
     }
     
-    if (city->population < city->population_limit && city->happiness >= 60) {
-        citizenadd = rand()%10;
+    if (city->population < city->population_limit &&
+        city->population < MAX_CITIZENS && city->happiness >= 60) {
+        citizenadd = rand() % 10;
         city->population += citizenadd;
-        if (city->population > city->population_limit) city->population = city->population_limit;
+
+        if (city->population > city->population_limit)
+            city->population = city->population_limit;
+        if (city->population > MAX_CITIZENS)
+            city->population = MAX_CITIZENS;
     }
-    
+
     city->citizen_count = city->population;
-    if (city->citizen_count > MAX_CITIZENS) city->citizen_count = MAX_CITIZENS;
+    if (city->citizen_count > MAX_CITIZENS)
+        city->citizen_count = MAX_CITIZENS;
+
+    if (city->citizen_count > old_count)
+        initializeNewCitizens(city, old_count, city->citizen_count);
 
     calculateCitizenRatings(city);
     calculateMayorRating(city);
